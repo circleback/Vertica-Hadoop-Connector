@@ -6,6 +6,8 @@
   
   <property name="projectroot" value = "${basedir}/.."/>
   <property file="${projectroot}/.build.properties"/>
+    <property name="hadoop.dir" value="/usr/local/hadoop"/>
+    <property name="pig.jar" value="usrpig-0.13.0-withouthadoop-h1.jar"/>
 
   <!-- When making a versioned release, create a branch and change the build.version below -->
   <property name="build.version" value = "SNAPSHOT" />

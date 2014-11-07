@@ -108,7 +108,7 @@
 			<zipfileset src="${pig-connector.jar}"/>
 			<zipfileset src="${pig.jar}"/>
 			<fileset dir="${build.classes}"/>
-			<fileset file="${basedir}/conf/verticafuncs.properties" />
+			<fileset file="/src/main/properties/verticafuncs.properties"/>
 			<manifest>
 			  <attribute name="Main-Class" value="com.vertica.squeal.Squeal" />
 				<attribute name="Built-By" value="${user.name}"/>
