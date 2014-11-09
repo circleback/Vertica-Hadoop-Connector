@@ -631,7 +631,7 @@ public class VerticaRecord implements Writable {
 		}*/
         StringBuilder list = new StringBuilder();
         for (int i = 0; i < values.size(); i++) {
-            if (0 != i) list.append("|");
+            if (0 != i) list.append("\t");
             list.append(values.get(i));
 
         }
@@ -642,7 +642,7 @@ public class VerticaRecord implements Writable {
     public void write(Writer out) throws IOException {
         StringBuilder list = new StringBuilder();
         for (int i = 0; i < values.size(); i++) {
-            if (0 != i) list.append('|');
+            if (0 != i) list.append('\t');
             Object value = values.get(i);
             if (null == value) {
                 list.append("");

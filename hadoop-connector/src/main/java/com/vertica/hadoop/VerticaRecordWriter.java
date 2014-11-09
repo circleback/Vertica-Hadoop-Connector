@@ -108,8 +108,8 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
         try {
             record.write(outputStreamWriter);
             numRecords++;
-            if (numRecords % 50000 == 0) {
-                LOG.info("Were written " + numRecords + " rows");
+            if (numRecords % 100000 == 0) {
+                LOG.info("Rows loaded: " + numRecords);
             }
         } catch (Exception e) {
             throw new IOException(e);
@@ -120,11 +120,8 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
 
         StringBuilder sb = new StringBuilder(150);
         sb.append("COPY ");
-
         sb.append(tableName);
-
-        sb.append(" FROM STDIN ");
-        sb.append(" DELIMITER '|' ");
+        sb.append(" FROM STDIN NO ESCAPE DELIMITER E'\\t' ");
         if (isDirect) {
             sb.append("DIRECT ");
         }
