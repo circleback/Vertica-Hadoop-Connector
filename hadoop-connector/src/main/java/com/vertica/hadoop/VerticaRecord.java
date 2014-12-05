@@ -649,8 +649,6 @@ public class VerticaRecord implements Writable {
             } else {
                 list.append(value);
             }
-
-
         }
         list.append('\n');
         out.write(list.toString());

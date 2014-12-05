@@ -32,20 +32,16 @@ import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
     private static final Log LOG = LogFactory.getLog("com.vertica.hadoop");
 
-    Relation vTable = null;
-    String schemaName = null;
     Connection connection = null;
     PreparedStatement statement = null;
-    long batchSize = 0;
     long numRecords = 0;
     private Thread workerThread;
-    private PipedInputStream pipedInputStream;
-    private PipedOutputStream pipedOutputStream;
     private BufferedWriter outputStreamWriter;
     private volatile boolean errorHappened;
 
@@ -69,8 +65,9 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
                     stream.start();
                     stream.addStream(pipedInputStream);
                     stream.execute();
-                    long rowsLoaded = stream.finish();
-                    LOG.info("Rows loaded into the db: " + rowsLoaded);
+                    stream.finish();
+                    LOG.info("ROWS LOADED: " + stream.getRowCount());
+                    LOG.info("ROWS REJECTED: " + stream.getRejects().size());
                     connection.commit();
                 } catch (SQLException e) {
                     errorHappened = true;
