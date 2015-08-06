@@ -45,7 +45,7 @@ public class VerticaTaskOutputCommitter extends AbstractVerticaOutputCommitter {
   @Override
   public void commitTask(TaskAttemptContext taskAttemptContext) throws IOException {
     log.info("Task complete - committing database connection");
-    //sqlCommit(getConnection(taskAttemptContext.getConfiguration()));
+    sqlCommit(getConnection(taskAttemptContext.getConfiguration()));
   }
 
   /**

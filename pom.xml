@@ -13,7 +13,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <pig.version>0.13.0</pig.version>
         <hadoop.version>2.4.0</hadoop.version>
-        <vertica.version>7.1.0</vertica.version>
+        <vertica.version>7.1.2</vertica.version>
 
     </properties>
 

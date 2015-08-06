@@ -149,7 +149,7 @@ public class VerticaOutputFormat extends OutputFormat<Text, VerticaRecord> {
 		String name = context.getJobName();
 		try {
 			writer = new VerticaRecordWriter(
-					getConnection(context.getConfiguration()), config);
+					getConnection(context.getConfiguration()), config, context.getTaskAttemptID());
 			return writer;
 		} catch (Exception e) {
 			throw new IOException(e);

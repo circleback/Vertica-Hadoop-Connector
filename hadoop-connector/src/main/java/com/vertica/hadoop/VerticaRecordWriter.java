@@ -24,6 +24,7 @@ import com.vertica.jdbc.VerticaCopyStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
@@ -32,7 +33,6 @@ import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.concurrent.Executors;
 
 public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
@@ -40,7 +40,6 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
 
     Connection connection = null;
     PreparedStatement statement = null;
-    long numRecords = 0;
     private Thread workerThread;
     private BufferedWriter outputStreamWriter;
     private volatile boolean errorHappened;
@@ -48,13 +47,25 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
     public VerticaRecordWriter(Connection conn, VerticaConfiguration configuration)
             throws Exception {
         final String copyStatement = buildCopyStatementSqlString(configuration.getOutputTableName(),
-                configuration.isDirect(), configuration.getMaxRejects());
+                configuration.isDirect(), configuration.getMaxRejects(), null);
         this.connection = conn;
         PipedOutputStream pipedOutputStream = new PipedOutputStream();
         final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream);
         outputStreamWriter = new BufferedWriter(new OutputStreamWriter(pipedOutputStream, Charset.forName("UTF-8")));
         initWorker(copyStatement, pipedInputStream);
     }
+
+    public VerticaRecordWriter(Connection conn, VerticaConfiguration configuration, TaskAttemptID taskAttemptId)
+            throws Exception {
+        final String copyStatement = buildCopyStatementSqlString(configuration.getOutputTableName(),
+                configuration.isDirect(), configuration.getMaxRejects(), taskAttemptId);
+        this.connection = conn;
+        PipedOutputStream pipedOutputStream = new PipedOutputStream();
+        final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream);
+        outputStreamWriter = new BufferedWriter(new OutputStreamWriter(pipedOutputStream, Charset.forName("UTF-8")));
+        initWorker(copyStatement, pipedInputStream);
+    }
+
 
     private void initWorker(final String copyStatement, final PipedInputStream pipedInputStream) {
         workerThread = Executors.defaultThreadFactory().newThread(new Runnable() {
@@ -68,7 +79,7 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
                     stream.finish();
                     LOG.info("ROWS LOADED: " + stream.getRowCount());
                     LOG.info("ROWS REJECTED: " + stream.getRejects().size());
-                    connection.commit();
+                    //connection.commit();
                 } catch (SQLException e) {
                     errorHappened = true;
                     if (e.getCause() instanceof InterruptedIOException) {
@@ -89,13 +100,15 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
         outputStreamWriter.close();
         if (workerThread != null && workerThread.isAlive()) {
             try {
-                workerThread.join(30000);
+                workerThread.join(300000);
                 if (errorHappened)
-                    throw new RuntimeException("Job failed dute to the errors while processing copy statement");
+                    throw new RuntimeException("Job failed due to an error while processing copy statement");
                 if (workerThread.isAlive()) {
                     workerThread.interrupt();
                 }
             } catch (InterruptedException e) {
+                LOG.error("Timed out waiting for worker thread to complete.");
+                throw new IOException(e);
             }
         }
     }
@@ -104,16 +117,12 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
     public void write(Text table, VerticaRecord record) throws IOException {
         try {
             record.write(outputStreamWriter);
-            numRecords++;
-            if (numRecords % 100000 == 0) {
-                LOG.info("Rows loaded: " + numRecords);
-            }
         } catch (Exception e) {
             throw new IOException(e);
         }
     }
 
-    private String buildCopyStatementSqlString(String tableName, boolean isDirect, int maxRejects) {
+    private String buildCopyStatementSqlString(String tableName, boolean isDirect, int maxRejects, TaskAttemptID taid) {
 
         StringBuilder sb = new StringBuilder(150);
         sb.append("COPY ");
@@ -121,6 +130,10 @@ public class VerticaRecordWriter extends RecordWriter<Text, VerticaRecord> {
         sb.append(" FROM STDIN NO ESCAPE DELIMITER E'\\t' ");
         if (isDirect) {
             sb.append("DIRECT ");
+        }
+
+        if (taid != null) {
+            sb.append("STREAM NAME '" + taid.getTaskID().getId() + "_" + taid.getId() + "' ");
         }
 
         if (0 != maxRejects) {
